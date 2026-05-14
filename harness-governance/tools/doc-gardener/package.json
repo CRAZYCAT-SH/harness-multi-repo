@@ -1,0 +1,16 @@
+{
+  "name": "@harness-demo/doc-gardener",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "文档新鲜度扫描器（pnpm docs:garden）",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  }
+}

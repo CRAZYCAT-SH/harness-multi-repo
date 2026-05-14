@@ -1,0 +1,15 @@
+# 本仓库触发器：接收 repository_dispatch 触发质量门禁
+name: Run Quality Gate
+
+on:
+  repository_dispatch:
+    types: [run-quality-gate]
+
+jobs:
+  quality-gate:
+    uses: ./.github/workflows/quality-gate.yml
+    with:
+      source-repo: ${{ github.event.client_payload.source_repo }}
+      pr-number: ${{ github.event.client_payload.pr_number }}
+    secrets:
+      REPO_TOKEN: ${{ secrets.REPO_TOKEN }}

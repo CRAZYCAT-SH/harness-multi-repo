@@ -1,0 +1,48 @@
+# OpenTelemetry Collector 配置（精简版）
+# 直接将日志/指标/追踪写入 Victoria 各组件，不经过 Vector
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+      http:
+        endpoint: "0.0.0.0:4318"
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 512
+
+exporters:
+  # 指标 → VictoriaMetrics
+  prometheusremotewrite:
+    endpoint: "http://victoriametrics:8428/api/v1/write"
+
+  # 追踪 → VictoriaTraces（通过其内置 OTLP 接收端点）
+  otlphttp/traces:
+    endpoint: "http://victoriatraces:10428/insert/opentelemetry"
+    tls:
+      insecure: true
+
+  # 日志 → VictoriaLogs（JSON Line 格式）
+  otlphttp/logs:
+    endpoint: "http://victorialogs:9428/insert/opentelemetry"
+
+  debug:
+    verbosity: basic
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/traces, debug]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheusremotewrite, debug]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/logs, debug]

@@ -1,0 +1,31 @@
+# E2E 测试用 Docker Compose（镜像兜底模式）
+# 当本地没有前后端仓库代码时，使用预构建的 Docker 镜像运行服务
+
+services:
+  frontend:
+    image: ghcr.io/harness-demo/harness-fe:latest
+    ports:
+      - "${FE_PORT:-5173}:5173"
+    environment:
+      - NODE_ENV=test
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5173"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    image: ghcr.io/harness-demo/harness-be:latest
+    ports:
+      - "${BE_PORT:-3001}:3001"
+    environment:
+      - JWT_SECRET=${JWT_SECRET:-e2e-test-secret}
+      - PORT=3001
+      - NODE_ENV=test
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://host.gateway.docker.internal:${OTEL_HTTP_PORT:-4318}
+      - OTEL_SERVICE_NAME=harness-demo-backend
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3001/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10

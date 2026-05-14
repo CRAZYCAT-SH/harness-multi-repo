@@ -1,0 +1,26 @@
+{
+  "name": "@harness-demo/governance",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx scripts/dev-all.ts",
+    "e2e": "tsx scripts/e2e-orchestrator.ts",
+    "e2e:fast": "tsx scripts/e2e-orchestrator.ts --no-observability",
+    "e2e:image": "tsx scripts/e2e-orchestrator.ts --fe-image --be-image",
+    "test:e2e": "playwright test",
+    "lint:arch": "node tools/arch-linter/dist/index.js",
+    "docs:garden": "node tools/doc-gardener/dist/index.js",
+    "quality:score": "node tools/quality-score/dist/index.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "wait-on": "^7.2.0"
+  }
+}

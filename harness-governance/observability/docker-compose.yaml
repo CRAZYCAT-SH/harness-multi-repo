@@ -1,0 +1,31 @@
+# 可观测性栈 Docker Compose 编排
+# 端口通过环境变量参数化，由 Worktree Launcher 动态分配
+
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.96.0
+    volumes:
+      - ./otel-collector.yaml:/etc/otelcol-contrib/config.yaml
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    ports:
+      - "${OTEL_GRPC_PORT}:4317"
+      - "${OTEL_HTTP_PORT}:4318"
+    depends_on:
+      - victorialogs
+      - victoriametrics
+      - victoriatraces
+
+  victorialogs:
+    image: victoriametrics/victoria-logs:latest
+    ports:
+      - "${VICTORIA_LOGS_PORT}:9428"
+
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:latest
+    ports:
+      - "${VICTORIA_METRICS_PORT}:8428"
+
+  victoriatraces:
+    image: victoriametrics/victoria-traces:latest
+    ports:
+      - "${VICTORIA_TRACES_PORT}:10428"

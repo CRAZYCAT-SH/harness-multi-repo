@@ -1,0 +1,22 @@
+# Vector 日志路由配置
+# 职责：接收 OTel Collector 转发的日志数据，写入 VictoriaLogs
+
+# ============================================================
+# Sources - 接收 OTel Collector 转发的 OTLP 日志
+# ============================================================
+
+[sources.otlp_logs]
+type = "http_server"
+address = "0.0.0.0:4319"
+encoding = "json"
+
+# ============================================================
+# Sinks - 写入 VictoriaLogs
+# ============================================================
+
+[sinks.victorialogs]
+type = "http"
+inputs = ["otlp_logs"]
+uri = "http://victorialogs:9428/insert/jsonline?_stream_fields=service,level"
+encoding.codec = "json"
+healthcheck.enabled = false

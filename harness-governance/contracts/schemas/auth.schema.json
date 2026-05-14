@@ -1,0 +1,70 @@
+{
+  "title": "Auth Schemas",
+  "description": "认证相关请求/响应的 JSON Schema 定义",
+  "definitions": {
+    "RegisterRequest": {
+      "type": "object",
+      "required": ["email", "password"],
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "用户邮箱"
+        },
+        "password": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 128,
+          "description": "密码"
+        }
+      },
+      "additionalProperties": false
+    },
+    "LoginRequest": {
+      "type": "object",
+      "required": ["email", "password"],
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "用户邮箱"
+        },
+        "password": {
+          "type": "string",
+          "minLength": 1,
+          "description": "密码"
+        }
+      },
+      "additionalProperties": false
+    },
+    "AuthResponse": {
+      "type": "object",
+      "required": ["token", "user"],
+      "properties": {
+        "token": {
+          "type": "string",
+          "description": "JWT Token"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
+        }
+      },
+      "additionalProperties": false
+    },
+    "User": {
+      "type": "object",
+      "required": ["id", "email"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "用户 ID"
+        },
+        "email": {
+          "type": "string",
+          "description": "用户邮箱"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,172 @@
+{
+  "title": "Task Schemas",
+  "description": "任务相关请求/响应的 JSON Schema 定义",
+  "definitions": {
+    "CreateTaskRequest": {
+      "type": "object",
+      "required": ["title"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "任务标题"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "任务描述"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["low", "normal", "high"],
+          "default": "normal",
+          "description": "任务优先级"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "截止日期（ISO 8601）"
+        },
+        "parent_id": {
+          "type": ["string", "null"],
+          "description": "父任务 ID（null 或不传表示顶级任务）"
+        }
+      },
+      "additionalProperties": false
+    },
+    "UpdateTaskRequest": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "任务标题"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "任务描述"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "in_progress", "done"],
+          "description": "任务状态"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["low", "normal", "high"],
+          "description": "任务优先级"
+        },
+        "due_date": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "截止日期（ISO 8601，null 表示清除）"
+        },
+        "parent_id": {
+          "type": ["string", "null"],
+          "description": "父任务 ID（null 表示移除父任务关系）"
+        }
+      },
+      "additionalProperties": false
+    },
+    "TaskResponse": {
+      "type": "object",
+      "required": ["id", "title", "status", "priority", "createdAt", "updatedAt", "userId"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "任务 ID"
+        },
+        "title": {
+          "type": "string",
+          "description": "任务标题"
+        },
+        "description": {
+          "type": ["string", "null"],
+          "description": "任务描述"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "in_progress", "done"],
+          "description": "任务状态"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["low", "normal", "high"],
+          "description": "任务优先级"
+        },
+        "due_date": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "截止日期"
+        },
+        "parent_id": {
+          "type": ["string", "null"],
+          "description": "父任务 ID（null 表示顶级任务）"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "创建时间"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "更新时间"
+        },
+        "userId": {
+          "type": "string",
+          "description": "所属用户 ID"
+        }
+      },
+      "additionalProperties": false
+    },
+    "TaskListResponse": {
+      "type": "object",
+      "required": ["data", "pagination"],
+      "properties": {
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TaskResponse"
+          },
+          "description": "任务列表"
+        },
+        "pagination": {
+          "$ref": "#/definitions/Pagination"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Pagination": {
+      "type": "object",
+      "required": ["page", "pageSize", "total", "totalPages"],
+      "properties": {
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "当前页码"
+        },
+        "pageSize": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "每页数量"
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "总记录数"
+        },
+        "totalPages": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "总页数"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

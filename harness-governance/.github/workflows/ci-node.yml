@@ -1,0 +1,68 @@
+# 可复用 CI 工作流：Node.js 项目的类型检查 + 测试 + 构建
+name: CI Node.js
+
+on:
+  workflow_call:
+    inputs:
+      filter:
+        description: 'pnpm --filter 名称'
+        required: true
+        type: string
+      node-version:
+        description: 'Node.js 版本'
+        type: string
+        default: '20'
+      pnpm-version:
+        description: 'pnpm 版本'
+        type: string
+        default: '9.15.0'
+    secrets:
+      inherit: true
+
+jobs:
+  typecheck:
+    name: 类型检查
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ inputs.pnpm-version }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter ${{ inputs.filter }} typecheck
+
+  test:
+    name: 测试
+    needs: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ inputs.pnpm-version }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter ${{ inputs.filter }} test:coverage
+
+  build:
+    name: 构建
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ inputs.pnpm-version }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter ${{ inputs.filter }} build

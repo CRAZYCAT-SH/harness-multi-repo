@@ -1,0 +1,140 @@
+# 可复用质量门禁工作流：架构 lint + 文档扫描 + 质量评分
+name: Quality Gate
+
+on:
+  workflow_call:
+    inputs:
+      source-repo:
+        description: '触发源仓库（owner/repo 格式）'
+        required: true
+        type: string
+      pr-number:
+        description: 'PR 编号（用于回写评论）'
+        type: number
+    secrets:
+      REPO_TOKEN:
+        required: true
+
+jobs:
+  arch-lint:
+    name: 架构合规检查
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '9.15.0'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint:arch
+        id: arch-lint
+      - name: 保存结果
+        if: always()
+        run: echo "${{ steps.arch-lint.outcome }}" > arch-lint-result.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: arch-lint-result
+          path: arch-lint-result.txt
+
+  doc-garden:
+    name: 文档新鲜度扫描
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '9.15.0'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm docs:garden
+        id: doc-garden
+      - name: 保存结果
+        if: always()
+        run: echo "${{ steps.doc-garden.outcome }}" > doc-garden-result.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: doc-garden-result
+          path: doc-garden-result.txt
+
+  quality-score:
+    name: 质量评分
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '9.15.0'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm quality:score
+        id: quality-score
+      - name: 保存结果
+        if: always()
+        run: echo "${{ steps.quality-score.outcome }}" > quality-score-result.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quality-score-result
+          path: quality-score-result.txt
+
+  report:
+    name: 汇总报告并回写 PR
+    needs: [arch-lint, doc-garden, quality-score]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*-result'
+          merge-multiple: true
+
+      - name: 生成报告并回写 PR 评论
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.REPO_TOKEN }}
+          script: |
+            const fs = require('fs');
+
+            // 读取各阶段结果
+            const archResult = fs.readFileSync('arch-lint-result.txt', 'utf8').trim();
+            const docResult = fs.readFileSync('doc-garden-result.txt', 'utf8').trim();
+            const qualityResult = fs.readFileSync('quality-score-result.txt', 'utf8').trim();
+
+            const statusIcon = (s) => s === 'success' ? '✅' : '❌';
+
+            const body = `## 🏗️ 质量门禁报告
+
+            | 检查项 | 状态 |
+            |--------|------|
+            | 架构合规 | ${statusIcon(archResult)} ${archResult} |
+            | 文档新鲜度 | ${statusIcon(docResult)} ${docResult} |
+            | 质量评分 | ${statusIcon(qualityResult)} ${qualityResult} |
+
+            > 由 harness-governance 质量门禁自动生成
+            `;
+
+            // 回写 PR 评论
+            const prNumber = ${{ inputs.pr-number || 0 }};
+            if (prNumber > 0) {
+              const [owner, repo] = '${{ inputs.source-repo }}'.split('/');
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: prNumber,
+                body: body.trim(),
+              });
+            }
+
+            core.summary.addRaw(body);
+            await core.summary.write();

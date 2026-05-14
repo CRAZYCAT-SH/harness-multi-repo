@@ -1,0 +1,54 @@
+# 可复用生产部署工作流（需审批）
+name: Deploy to Production
+
+on:
+  workflow_call:
+    inputs:
+      service-name:
+        description: '服务名称（frontend / backend）'
+        required: true
+        type: string
+      version:
+        description: '部署版本（tag 或 SHA）'
+        required: true
+        type: string
+    secrets:
+      DEPLOY_TOKEN:
+        required: true
+
+jobs:
+  deploy-production:
+    name: 部署到 Production
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '9.15.0'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 构建生产版本
+        run: pnpm build
+        env:
+          NODE_ENV: production
+
+      - name: 部署到 Production
+        run: |
+          echo "🚀 部署 ${{ inputs.service-name }} v${{ inputs.version }} 到 Production 环境"
+          echo "TODO: 替换为实际生产部署命令"
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+
+      - name: 冒烟测试
+        run: |
+          echo "🔍 执行冒烟测试: ${{ inputs.service-name }} v${{ inputs.version }}"
+          echo "TODO: 替换为实际冒烟测试（如 curl 健康检查端点）"

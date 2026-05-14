@@ -1,0 +1,116 @@
+# 可复用 E2E 工作流：跨仓库 Playwright 端到端测试
+name: E2E Tests
+
+on:
+  workflow_call:
+    inputs:
+      frontend-repo:
+        description: '前端仓库（owner/repo 格式）'
+        required: true
+        type: string
+      backend-repo:
+        description: '后端仓库（owner/repo 格式）'
+        required: true
+        type: string
+      frontend-ref:
+        description: '前端分支/SHA'
+        type: string
+        default: 'main'
+      backend-ref:
+        description: '后端分支/SHA'
+        type: string
+        default: 'main'
+    secrets:
+      FRONTEND_REPO_TOKEN:
+        required: true
+      BACKEND_REPO_TOKEN:
+        required: true
+
+jobs:
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    steps:
+      # 检出治理仓库（包含 E2E 测试和编排脚本）
+      - uses: actions/checkout@v4
+
+      # 检出前端仓库
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.frontend-repo }}
+          ref: ${{ inputs.frontend-ref }}
+          token: ${{ secrets.FRONTEND_REPO_TOKEN }}
+          path: frontend
+
+      # 检出后端仓库
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.backend-repo }}
+          ref: ${{ inputs.backend-ref }}
+          token: ${{ secrets.BACKEND_REPO_TOKEN }}
+          path: backend
+
+      # 设置 pnpm 和 Node.js
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '9.15.0'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      # 安装依赖
+      - name: 安装前端依赖
+        run: pnpm install --frozen-lockfile
+        working-directory: frontend
+
+      - name: 安装后端依赖
+        run: pnpm install --frozen-lockfile
+        working-directory: backend
+
+      # 构建
+      - name: 构建前端
+        run: pnpm build
+        working-directory: frontend
+
+      - name: 构建后端
+        run: pnpm build
+        working-directory: backend
+
+      # 启动后端服务（后台运行）
+      - name: 启动后端
+        run: node dist/app.js &
+        working-directory: backend
+        env:
+          PORT: 3001
+          JWT_SECRET: e2e-test-secret
+          NODE_ENV: test
+
+      # 启动前端预览（后台运行）
+      - name: 启动前端预览
+        run: pnpm preview --port 5173 &
+        working-directory: frontend
+
+      # 等待服务就绪
+      - name: 等待服务就绪
+        run: npx wait-on http://localhost:3001/health http://localhost:5173 --timeout 60000
+
+      # 安装 Playwright 浏览器
+      - name: 安装 Playwright
+        run: npx playwright install --with-deps chromium
+
+      # 执行 E2E 测试
+      - name: 运行 Playwright 测试
+        run: npx playwright test
+        env:
+          BASE_URL: http://localhost:5173
+          API_URL: http://localhost:3001
+
+      # 上传测试报告
+      - name: 上传测试报告
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

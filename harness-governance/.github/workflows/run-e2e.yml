@@ -1,0 +1,28 @@
+# 本仓库触发器：接收 repository_dispatch 或手动触发 E2E
+name: Run E2E
+
+on:
+  repository_dispatch:
+    types: [run-e2e]
+  workflow_dispatch:
+    inputs:
+      fe-ref:
+        description: '前端分支/SHA'
+        type: string
+        default: 'main'
+      be-ref:
+        description: '后端分支/SHA'
+        type: string
+        default: 'main'
+
+jobs:
+  e2e:
+    uses: ./.github/workflows/e2e.yml
+    with:
+      frontend-repo: harness-demo/harness-fe
+      backend-repo: harness-demo/harness-be
+      frontend-ref: ${{ github.event.client_payload.fe_ref || inputs.fe-ref || 'main' }}
+      backend-ref: ${{ github.event.client_payload.be_ref || inputs.be-ref || 'main' }}
+    secrets:
+      FRONTEND_REPO_TOKEN: ${{ secrets.FRONTEND_REPO_TOKEN }}
+      BACKEND_REPO_TOKEN: ${{ secrets.BACKEND_REPO_TOKEN }}

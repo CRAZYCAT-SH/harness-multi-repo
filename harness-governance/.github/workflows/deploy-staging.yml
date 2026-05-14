@@ -1,0 +1,52 @@
+# 可复用 Staging 部署工作流
+name: Deploy to Staging
+
+on:
+  workflow_call:
+    inputs:
+      service-name:
+        description: '服务名称（frontend / backend）'
+        required: true
+        type: string
+      build-command:
+        description: '构建命令'
+        required: true
+        type: string
+      artifact-path:
+        description: '构建产物路径'
+        required: true
+        type: string
+    secrets:
+      DEPLOY_TOKEN:
+        required: true
+
+jobs:
+  deploy-staging:
+    name: 部署到 Staging
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '9.15.0'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 构建
+        run: ${{ inputs.build-command }}
+
+      - name: 部署到 Staging
+        run: |
+          echo "🚀 部署 ${{ inputs.service-name }} 到 Staging 环境"
+          echo "构建产物路径: ${{ inputs.artifact-path }}"
+          echo "TODO: 替换为实际部署命令（如 AWS S3 sync / Docker push / K8s apply）"
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
